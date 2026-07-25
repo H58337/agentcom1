@@ -1,23 +1,21 @@
-# COM: Personalized Communication Skills for Agentic Recommendation
+# AgentCom: Personalized Communication Skills for Agentic Recommender Systems
 
-This repository contains a standalone implementation of COM, a multi-agent
-recommendation framework in which a user agent consults socially selected
-advisor agents before making a final choice. The release contains the COM
-pipeline and its SASRec backbone, without attack models or unrelated baselines.
+This repository contains the implementation of **AgentCom**, a personalized
+communication skill framework for agentic recommender systems. A target
+UserAgent first makes a provisional decision over recommender-generated
+candidates, consults selected advisor agents, and then makes the final choice.
 
-## Method Overview
+AgentCom maintains a public `why -> what -> how -> who` communication skill
+bank:
 
-COM maintains a public four-layer communication skill bank:
-
-1. `why`: identify the decision deficiency that makes external advice useful.
-2. `what`: turn the deficiency into a bounded advisor task.
+1. `why`: identify the decision deficiency that makes advice useful.
+2. `what`: define the information task for advisors.
 3. `how`: select a single-advisor, cooperative, or competitive protocol.
-4. `who`: retrieve trusted, similar, experienced, or two-hop social advisors.
+4. `who`: retrieve trusted, similar, experienced, or friend-of-friend advisors.
 
-The `similar-users` source is ranked by cosine similarity between user
-representations produced by the trained SASRec sequence encoder. Public skills
-and personalized user skills can evolve from failed training interactions; the
-saved skills remain fixed during testing.
+During training, failed communication cases are analyzed to refine existing
+skills, add missing skills, or correct the personalized route. Skills are fixed
+during testing. This release uses SASRec as the candidate-generation backbone.
 
 ## Requirements
 
@@ -27,16 +25,17 @@ Use Python 3.10 or later.
 pip install -r requirements.txt
 ```
 
-For API-based LLM inference, configure an API key in PowerShell:
+Before an LLM-based stage, configure an API key privately:
 
-```powershell
-$env:DEEPSEEK_API_KEY = "your-api-key"
+```cmd
+set DEEPSEEK_API_KEY=your-api-key
 ```
 
+The default LLM is `deepseek-v4-flash`; use `--model <model-name>` to change it.
 
-## Data Format
+## Data
 
-Processed data lives in `data/clean/<dataset>/` and uses RecBole-style files:
+Processed data is stored in `data/clean/<dataset>/` using RecBole-style files:
 
 ```text
 <dataset>.inter
@@ -47,68 +46,38 @@ Processed data lives in `data/clean/<dataset>/` and uses RecBole-style files:
 <dataset>.test.inter
 ```
 
-`librarything` is included. For a new dataset, provide the raw `.inter`,
-`.item`, and `.social` files, then run the split stage. Users with fewer than
-five interactions are filtered by default.
+The processed `librarything` dataset is included. For a new dataset, add the
+raw files and run:
 
-## SASRec Backbone and Candidates
-
-COM always uses SASRec. On training, it loads an existing checkpoint or trains
-one at:
-
-```text
-modelsaved/SASRec/<dataset>/clean/tool/SASRec_model.pth
+```cmd
+python main.py --dataset <dataset> --run_stage split --split_data True
 ```
-
-It then writes candidate sets to:
-
-```text
-modelsaved/SASRec/<dataset>/candidates.json
-modelsaved/SASRec/<dataset>/candidates_val.json
-```
-
-Each candidate set has 20 items by default: the held-out target plus the 19
-highest-scored SASRec non-target items. COM also derives its PriorHint from
-SASRec scores over the same candidate set. The same SASRec encoder produces
-the user embeddings used by `similar-users` retrieval.
-
-External candidate JSON or prior CSV files can still be supplied with
-`--com_candidates_json_path`, `--com_candidates_val_json_path`,
-`--com_prior_csv_path`, and `--com_prior_val_csv_path`. They override the
-automatically generated artifacts, while SASRec remains the backbone used for
-similar-user retrieval.
 
 ## Workflow
 
-1. Split a new dataset:
+Initialize user policies and the public skill bank:
 
-```powershell
-python main.py --dataset librarything --run_stage split --split_data True
+```cmd
+python main.py --dataset librarything --model_name com --model_type agent --tool_name SASRec --tool_type sequential --run_stage train --split_data False --com_bootstrap_user_policy_only True --com_rebuild_initial_user_policy True --com_llm_init_user_core_skill True --agent_workers 10
 ```
 
-2. Train SASRec, initialize COM skills, generate SASRec candidates/PriorHint,
-   and evolve COM from training failures:
+Train AgentCom with failure-driven skill evolution:
 
-```powershell
-python main.py --dataset librarything --run_stage train --split_data False `
-  --com_save_dialogue True --agent_workers 10
+```cmd
+python main.py --dataset librarything --model_name com --model_type agent --tool_name SASRec --tool_type sequential --run_stage train --split_data False --com_rebuild_initial_user_policy False --com_llm_evolve_user_skill True --com_tree_evolve_final_flush True --com_refresh_public_tree_layout True --agent_workers 10
 ```
 
-3. Test with the saved SASRec checkpoint and fixed COM skills:
+Test with fixed skills:
 
-```powershell
-python main.py --dataset librarything --run_stage test --split_data False `
-  --com_save_dialogue True --agent_workers 10
+```cmd
+python main.py --dataset librarything --model_name com --model_type agent --tool_name SASRec --tool_type sequential --run_stage test --split_data False --com_tree_evolve_final_flush False --com_refresh_public_tree_layout False --agent_workers 10
 ```
 
-Use `--run_stage train_test` to run both stages in one command. Set
-`--sasrec_force_retrain True` to train SASRec again, or pass
-`--sasrec_checkpoint_path` and `--sasrec_config_file_path` for custom paths.
+Generated checkpoints, candidate sets, skills, and metrics are written to
+`modelsaved/` and are excluded from version control.
 
-## Outputs
+## Reference
 
-- SASRec checkpoints and candidate sets: `modelsaved/SASRec/<dataset>/`
-- COM user skills, public skill bank, metrics, and traces:
-  `modelsaved/com/<dataset>/`
-
-Run `python main.py --help` for all configuration options.
+```text
+Personalized Communication Skills for Agentic Recommender Systems
+```
