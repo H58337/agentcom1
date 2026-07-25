@@ -1,0 +1,72 @@
+# --------------------
+# General / Environment
+# --------------------
+epochs: 50
+train_batch_size: 2048
+eval_batch_size: 4096
+learner: adam
+learning_rate: 0.001
+eval_step: 5
+stopping_step: 10
+checkpoint_dir: saved
+train_neg_sample_args: ~
+loss_type: BPR
+# --------------------
+# Data settings
+# --------------------
+field_separator: "\t"
+seq_separator: " "
+
+# benchmark 三文件：click.train/valid/test.inter -> train/valid/test
+benchmark_filename: ['train', 'valid', 'test']
+
+# Field mapping (must match .inter header)
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+RATING_FIELD: rating
+TIME_FIELD: timestamp
+
+load_col:
+  inter: [user_id, item_id, rating, timestamp, item_id_list]
+
+# Sequential settings
+ITEM_LIST_LENGTH_FIELD: item_length
+LIST_SUFFIX: _list
+POSITION_FIELD: position_id
+
+alias_of_item_id: ['item_id_list']
+
+# Optional filters
+user_inter_num_interval: "[0,inf)"
+item_inter_num_interval: "[0,inf)"
+
+# --------------------
+# Model settings (SASRec)
+# --------------------
+hidden_size: 64
+inner_size: 256
+n_layers: 2
+n_heads: 2
+hidden_dropout_prob: 0.5
+attn_dropout_prob: 0.5
+hidden_act: gelu
+layer_norm_eps: 1e-12
+initializer_range: 0.02
+loss_type: CE
+
+# --------------------
+# Evaluation settings
+# --------------------
+# benchmark 模式不写 split
+eval_args:
+  group_by: user
+  order: TO
+  mode: {valid: full, test: full}
+
+
+metrics: ['Recall', 'NDCG', 'Hit']
+
+
+topk: [1, 5, 10, 20, 50]
+valid_metric: NDCG@10
+metric_decimal_place: 4
