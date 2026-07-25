@@ -47,31 +47,13 @@ Processed data is stored in `data/clean/<dataset>/` using RecBole-style files:
 ```
 
 The processed `librarything` dataset is included. For a new dataset, add the
-raw files and run:
+raw files and use the split stage provided by `main.py`.
 
-```cmd
-python main.py --dataset <dataset> --run_stage split --split_data True
-```
+## Usage
 
-## Workflow
-
-Initialize user policies and the public skill bank:
-
-```cmd
-python main.py --dataset librarything --model_name com --model_type agent --tool_name SASRec --tool_type sequential --run_stage train --split_data False --com_bootstrap_user_policy_only True --com_rebuild_initial_user_policy True --com_llm_init_user_core_skill True --agent_workers 10
-```
-
-Train AgentCom with failure-driven skill evolution:
-
-```cmd
-python main.py --dataset librarything --model_name com --model_type agent --tool_name SASRec --tool_type sequential --run_stage train --split_data False --com_rebuild_initial_user_policy False --com_llm_evolve_user_skill True --com_tree_evolve_final_flush True --com_refresh_public_tree_layout True --agent_workers 10
-```
-
-Test with fixed skills:
-
-```cmd
-python main.py --dataset librarything --model_name com --model_type agent --tool_name SASRec --tool_type sequential --run_stage test --split_data False --com_tree_evolve_final_flush False --com_refresh_public_tree_layout False --agent_workers 10
-```
+Use `main.py` to prepare a dataset, initialize AgentCom, train the skill bank,
+and evaluate the fixed skills. Run `python main.py --help` to view available
+configuration options.
 
 Generated checkpoints, candidate sets, skills, and metrics are written to
 `modelsaved/` and are excluded from version control.
